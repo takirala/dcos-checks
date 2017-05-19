@@ -9,26 +9,26 @@
 		{
 			"checksumSHA1": "t+xHkFcaPuAVgec1W3MNTnSNhXg=",
 			"path": "github.com/dcos/dcos-go/dcos",
-			"revision": "0060d71f61c06c460887a67cc4ea274f4b2e7441",
-			"revisionTime": "2017-04-03T22:11:26Z"
+			"revision": "4b59fd44c61148e7f94b3e75acb9834a15682ee9",
+			"revisionTime": "2017-05-17T21:25:13Z"
 		},
 		{
 			"checksumSHA1": "Qz6GSjmNYD4CiTapDBqbkFAJYCI=",
 			"path": "github.com/dcos/dcos-go/dcos/http/transport",
-			"revision": "0060d71f61c06c460887a67cc4ea274f4b2e7441",
-			"revisionTime": "2017-04-03T22:11:26Z"
+			"revision": "4b59fd44c61148e7f94b3e75acb9834a15682ee9",
+			"revisionTime": "2017-05-17T21:25:13Z"
 		},
 		{
 			"checksumSHA1": "hjwc/7iAxSRM7Aw9UPg7x1epu40=",
 			"path": "github.com/dcos/dcos-go/dcos/nodeutil",
-			"revision": "0060d71f61c06c460887a67cc4ea274f4b2e7441",
-			"revisionTime": "2017-04-03T22:11:26Z"
+			"revision": "4b59fd44c61148e7f94b3e75acb9834a15682ee9",
+			"revisionTime": "2017-05-17T21:25:13Z"
 		},
 		{
-			"checksumSHA1": "iIO2iy8ZDaQQ2PLAwaMVNt2GqRc=",
+			"checksumSHA1": "n3FHGRo/WUwv4DDEFuJh2EATG7I=",
 			"path": "github.com/dcos/dcos-go/exec",
-			"revision": "0060d71f61c06c460887a67cc4ea274f4b2e7441",
-			"revisionTime": "2017-04-03T22:11:26Z"
+			"revision": "4b59fd44c61148e7f94b3e75acb9834a15682ee9",
+			"revisionTime": "2017-05-17T21:25:13Z"
 		},
 		{
 			"checksumSHA1": "7oJyGPn6FhDZeJy9wuWqWSQ5XFM=",
@@ -231,5 +231,5 @@
 			"revisionTime": "2017-04-07T17:21:22Z"
 		}
 	],
-	"rootPath": "github.com/dcos/dcos/packages/dcos-checks/extra/dcos-checks"
+	"rootPath": "github.com/dcos/dcos-checks"
 }
