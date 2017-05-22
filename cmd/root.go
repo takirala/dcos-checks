@@ -30,7 +30,6 @@ var (
 	DCOSConfig = new(CLIConfigFlags)
 
 	cfgFile string
-	//httpClient *http.Client
 )
 
 // CLIConfigFlags consolidates CLI cobra flags
@@ -116,16 +115,23 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	viper.SetConfigName("dcos-checks-config") // name of config file (without extension)
+	viper.AddConfigPath("/opt/mesosphere/etc/")
+	viper.AutomaticEnv()
+
 	if cfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName(".checks") // name of config file (without extension)
-	viper.AddConfigPath("$HOME")   // adding home directory as first search path
-	viper.AutomaticEnv()           // read in environment variables that match
-
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		logrus.Infof("Using config file: %s", viper.ConfigFileUsed())
+		DCOSConfig.Role = viper.GetString("role")
+		DCOSConfig.ForceTLS = viper.GetBool("force-tls")
+		DCOSConfig.Verbose = viper.GetBool("verbose")
+		DCOSConfig.IAMConfig = viper.GetString("iam-config")
+		DCOSConfig.CACert = viper.GetString("ca-cert")
+		DCOSConfig.DetectIP = viper.GetString("detect-ip")
+		DCOSConfig.NodeIPStr = viper.GetString("node-ip")
 	}
 }
