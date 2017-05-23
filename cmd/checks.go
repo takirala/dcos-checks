@@ -23,8 +23,8 @@ type DCOSChecker interface {
 }
 
 // RunCheck is a helper function to run the check and emit the result.
-func RunCheck(check DCOSChecker) {
-	output, retCode, err := check.Run(nil, DCOSConfig)
+func RunCheck(ctx context.Context, check DCOSChecker) {
+	output, retCode, err := check.Run(ctx, DCOSConfig)
 	if err != nil {
 		logrus.Fatalf("Error executing %s: %s", check.ID(), err)
 	}
@@ -37,8 +37,16 @@ func RunCheck(check DCOSChecker) {
 }
 
 // NewComponentCheck returns an initialized instance of *ComponentCheck.
-func NewComponentCheck(name string) *ComponentCheck {
+func NewComponentCheck(name string) DCOSChecker {
 	return &ComponentCheck{
 		Name: name,
+	}
+}
+
+// NewExecutableCheck returns an intiialized instance of *ExecutableCheck
+func NewExecutableCheck(name string, args []string) DCOSChecker {
+	return &ExecutableCheck{
+		Name: name,
+		Args: args,
 	}
 }
