@@ -25,10 +25,10 @@
 			"revisionTime": "2017-05-17T21:25:13Z"
 		},
 		{
-			"checksumSHA1": "n3FHGRo/WUwv4DDEFuJh2EATG7I=",
+			"checksumSHA1": "y1zRMjJChFalyNeXRzV90Btcqsg=",
 			"path": "github.com/dcos/dcos-go/exec",
-			"revision": "4b59fd44c61148e7f94b3e75acb9834a15682ee9",
-			"revisionTime": "2017-05-17T21:25:13Z"
+			"revision": "ec29434ed665b4a261d84712cb7a300031cd2058",
+			"revisionTime": "2017-05-30T21:34:09Z"
 		},
 		{
 			"checksumSHA1": "7oJyGPn6FhDZeJy9wuWqWSQ5XFM=",
