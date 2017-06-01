@@ -64,7 +64,7 @@ and validating the health field:
 }
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCheck(NewComponentCheck("DC/OS components health check"))
+		RunCheck(context.TODO(), NewComponentCheck("DC/OS components health check"))
 	},
 }
 
