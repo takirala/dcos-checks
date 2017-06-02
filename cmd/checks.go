@@ -43,10 +43,17 @@ func NewComponentCheck(name string) DCOSChecker {
 	}
 }
 
-// NewExecutableCheck returns an intiialized instance of *ExecutableCheck
+// NewExecutableCheck returns an intialized instance of *ExecutableCheck
 func NewExecutableCheck(name string, args []string) DCOSChecker {
 	return &ExecutableCheck{
 		Name: name,
 		Args: args,
+	}
+}
+
+// NewZkQuorumCheck returns an initialized instance of *ComponentCheck.
+func NewZkQuorumCheck(name string) DCOSChecker {
+	return &ZkQuorumCheck{
+		Name: name,
 	}
 }
