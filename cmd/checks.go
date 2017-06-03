@@ -72,35 +72,35 @@ func RunCheck(ctx context.Context, check DCOSChecker) {
 }
 
 // HTTPRequest verifies the results of the request
-func HTTPRequest(cfg *CLIConfigFlags, urlOptions URLFields) ([]byte, error) {
+func HTTPRequest(cfg *CLIConfigFlags, urlOptions URLFields) (int, []byte, error) {
 	httpClient, err := client.NewClient(cfg.IAMConfig, cfg.CACert)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create HTTP client")
+		return 0, nil, errors.Wrap(err, "unable to create HTTP client")
 	}
 
 	url, err := getURL(httpClient, cfg, urlOptions)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	logrus.Debugf("GET %s", url)
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create a new HTTP request")
+		return 0, nil, errors.Wrap(err, "unable to create a new HTTP request")
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to execute GET %s", url)
+		return 0, nil, errors.Wrapf(err, "unable to execute GET %s", url)
 	}
 
 	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read response body")
+		return 0, nil, errors.Wrapf(err, "unable to read response body")
 	}
 	defer resp.Body.Close()
 
-	return responseData, nil
+	return resp.StatusCode, responseData, nil
 }
 
 func getURL(httpClient *http.Client, cfg *CLIConfigFlags, urlOptions URLFields) (*url.URL, error) {
@@ -108,17 +108,24 @@ func getURL(httpClient *http.Client, cfg *CLIConfigFlags, urlOptions URLFields) 
 	if cfg.ForceTLS {
 		scheme = httpsScheme
 	}
-
+	host := urlOptions.host
+	if host == "" {
+		ip, err := cfg.IP(httpClient)
+		if err != nil {
+			return nil, err
+		}
+		host = ip.String()
+	}
 	if urlOptions.port == 0 {
 		return &url.URL{
 			Scheme: scheme,
-			Host:   urlOptions.host,
+			Host:   host,
 			Path:   urlOptions.path,
 		}, nil
 	}
 	return &url.URL{
 		Scheme: scheme,
-		Host:   net.JoinHostPort(urlOptions.host, strconv.Itoa(urlOptions.port)),
+		Host:   net.JoinHostPort(host, strconv.Itoa(urlOptions.port)),
 		Path:   urlOptions.path,
 	}, nil
 }

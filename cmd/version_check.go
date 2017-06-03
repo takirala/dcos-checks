@@ -151,7 +151,7 @@ func (vc *VersionCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, i
 func (vc *VersionCheck) ListOfMasters(cfg *CLIConfigFlags, urlopt URLFields) ([]string, error) {
 	var masterResponse MasterListResponse
 	var masterIPs []string
-	response, err := HTTPRequest(cfg, urlopt)
+	_, response, err := HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to fetch list of masters")
 	}
@@ -170,7 +170,7 @@ func (vc *VersionCheck) ListOfMasters(cfg *CLIConfigFlags, urlopt URLFields) ([]
 func (vc *VersionCheck) ListOfAgents(cfg *CLIConfigFlags, urlopt URLFields) ([]string, error) {
 	var agentResponse AgentListResponse
 	var agentIPs []string
-	response, err := HTTPRequest(cfg, urlopt)
+	_, response, err := HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to fetch list of agents")
 	}
@@ -188,7 +188,7 @@ func (vc *VersionCheck) ListOfAgents(cfg *CLIConfigFlags, urlopt URLFields) ([]s
 // GetVersion returns the dc/os version of a node
 func (vc *VersionCheck) GetVersion(cfg *CLIConfigFlags, urlopt URLFields) (string, error) {
 	var verResponse VersionResponse
-	response, err := HTTPRequest(cfg, urlopt)
+	_, response, err := HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return "", errors.Wrap(err, "Unable to get version")
 	}
