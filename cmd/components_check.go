@@ -51,6 +51,13 @@ var (
 	healthURLPrefix string
 )
 
+// NewComponentCheck returns an initialized instance of *ComponentCheck.
+func NewComponentCheck(name string) DCOSChecker {
+	return &ComponentCheck{
+		Name: name,
+	}
+}
+
 // componentsCmd represents the systemd health check
 var componentsCmd = &cobra.Command{
 	Use:   "components",

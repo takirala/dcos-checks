@@ -2,9 +2,9 @@ package cmd
 
 import "testing"
 
-// TestZookeeperQuorumCheckGetHealthURL validates that parameters Role and ForceTLS
+// TestZookeeperQuorumCheckGetURL validates that parameters Role and ForceTLS
 // return the expected URL based on adminrouter configuration.
-func TestZookeeperQuorumCheckGetHealthURL(t *testing.T) {
+func TestZookeeperQuorumCheckGetURL(t *testing.T) {
 	zk := &ZkQuorumCheck{
 		Name: "TEST",
 	}

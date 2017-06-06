@@ -31,6 +31,13 @@ import (
 
 const zkResponseServing = 3
 
+// NewZkQuorumCheck returns an initialized instance of *ComponentCheck.
+func NewZkQuorumCheck(name string) DCOSChecker {
+	return &ZkQuorumCheck{
+		Name: name,
+	}
+}
+
 // zkQuorumCmd represents the zk-quorum command
 var zkQuorumCmd = &cobra.Command{
 	Use:   "zk-quorum",

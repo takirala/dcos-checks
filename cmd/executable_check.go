@@ -30,6 +30,14 @@ var validExecutables = map[string]bool{
 	"unzip": true,
 }
 
+// NewExecutableCheck returns an intialized instance of *ExecutableCheck
+func NewExecutableCheck(name string, args []string) DCOSChecker {
+	return &ExecutableCheck{
+		Name: name,
+		Args: args,
+	}
+}
+
 // executableCmd represents the executable command
 var executableCmd = &cobra.Command{
 	Use:   "executable",
