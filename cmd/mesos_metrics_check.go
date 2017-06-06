@@ -30,9 +30,7 @@ import (
 )
 
 const (
-	mesosMasterHTTPPort = 5050
-	mesosAgentHTTPPort  = 5051
-	nodeRecovered       = 1.0
+	nodeRecovered = 1.0
 )
 
 // mesosMetricsCmd represents the mesos-metrics command

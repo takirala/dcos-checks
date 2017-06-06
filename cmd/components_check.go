@@ -31,22 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	// master node has a 3dt instance running on TCP port 1050.
-	// ee version has 3dt running via unix socket on both master and agent nodes,
-	// depending on security option. Ports 80 or 443 are using accordingly.
-	dcosDiagnosticsMasterHTTPPort = 1050
-	adminrouterMasterHTTPSPort    = 443
-
-	// agent node runs 3dt via unix socket and is available though the agent
-	// adminrouter HTTP TCP port 61001 or HTTPS 61002.
-	adminrouterAgentHTTPPort  = 61001
-	adminrouterAgentHTTPSPort = 61002
-
-	httpScheme  = "http"
-	httpsScheme = "https"
-)
-
 var (
 	healthURLPrefix string
 )
