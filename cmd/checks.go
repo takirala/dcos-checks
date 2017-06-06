@@ -35,25 +35,3 @@ func RunCheck(ctx context.Context, check DCOSChecker) {
 
 	os.Exit(retCode)
 }
-
-// NewComponentCheck returns an initialized instance of *ComponentCheck.
-func NewComponentCheck(name string) DCOSChecker {
-	return &ComponentCheck{
-		Name: name,
-	}
-}
-
-// NewExecutableCheck returns an intialized instance of *ExecutableCheck
-func NewExecutableCheck(name string, args []string) DCOSChecker {
-	return &ExecutableCheck{
-		Name: name,
-		Args: args,
-	}
-}
-
-// NewZkQuorumCheck returns an initialized instance of *ComponentCheck.
-func NewZkQuorumCheck(name string) DCOSChecker {
-	return &ZkQuorumCheck{
-		Name: name,
-	}
-}
