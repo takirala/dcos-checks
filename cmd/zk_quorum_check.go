@@ -33,9 +33,9 @@ const zkResponseServing = 3
 
 // NewZkQuorumCheck returns an initialized instance of *ComponentCheck.
 func NewZkQuorumCheck(name string) DCOSChecker {
-	return &ZkQuorumCheck{
-		Name: name,
-	}
+	check := &ZkQuorumCheck{Name: name}
+	check.urlFunc = check.getURL
+	return check
 }
 
 // zkQuorumCmd represents the zk-quorum command
@@ -70,7 +70,8 @@ type ZkResponse struct {
 
 // ZkQuorumCheck struct
 type ZkQuorumCheck struct {
-	Name string
+	Name    string
+	urlFunc func(*http.Client, *CLIConfigFlags) (*url.URL, error)
 }
 
 // Run invokes a zkquorum check and return error output, exit code and error.
@@ -84,7 +85,7 @@ func (zk *ZkQuorumCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, 
 		return "", statusUnknown, errors.Wrap(err, "unable to create HTTP client")
 	}
 
-	url, err := zk.getURL(httpClient, cfg)
+	url, err := zk.urlFunc(httpClient, cfg)
 	if err != nil {
 		return "", statusFailure, errors.Wrap(err, "Unable to get the zk status endpoint")
 	}
@@ -124,18 +125,16 @@ func (zk *ZkQuorumCheck) getURL(httpClient *http.Client, cfg *CLIConfigFlags) (*
 		return nil, err
 	}
 
-	host := ip.String()
 	scheme := httpScheme
-
 	if cfg.ForceTLS {
 		scheme = httpsScheme
-		host = net.JoinHostPort(ip.String(), strconv.Itoa(adminrouterMasterHTTPSPort))
 	}
+
 	path := "exhibitor/v1/cluster/state/" + ip.String()
 
 	return &url.URL{
 		Scheme: scheme,
-		Host:   host,
+		Host:   net.JoinHostPort(ip.String(), strconv.Itoa(exhibitorPort)),
 		Path:   path,
 	}, nil
 
