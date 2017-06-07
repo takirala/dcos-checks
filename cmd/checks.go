@@ -13,6 +13,9 @@ const (
 	statusWarning
 	statusFailure
 	statusUnknown
+
+	// exhibitor admin router port
+	exhibitorPort = 8181
 )
 
 // DCOSChecker defines an interface for a generic DC/OS check.
