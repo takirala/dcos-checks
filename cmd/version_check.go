@@ -17,15 +17,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/url"
-	"strconv"
-
-	"github.com/dcos/dcos-checks/client"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -60,13 +52,6 @@ type VersionResponse struct {
 	Version         string `json:"version"`
 	DcosImageCommit string `json:"dcos-image-commit"`
 	BootstrapID     string `json:"bootstrap-id"`
-}
-
-// URLFields is used to construct the url
-type URLFields struct {
-	host string
-	port int
-	path string
 }
 
 // versionCmd represents the version command
@@ -166,7 +151,7 @@ func (vc *VersionCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, i
 func (vc *VersionCheck) ListOfMasters(cfg *CLIConfigFlags, urlopt URLFields) ([]string, error) {
 	var masterResponse MasterListResponse
 	var masterIPs []string
-	response, err := vc.HTTPRequest(cfg, urlopt)
+	response, err := HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to fetch list of masters")
 	}
@@ -185,7 +170,7 @@ func (vc *VersionCheck) ListOfMasters(cfg *CLIConfigFlags, urlopt URLFields) ([]
 func (vc *VersionCheck) ListOfAgents(cfg *CLIConfigFlags, urlopt URLFields) ([]string, error) {
 	var agentResponse AgentListResponse
 	var agentIPs []string
-	response, err := vc.HTTPRequest(cfg, urlopt)
+	response, err := HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to fetch list of agents")
 	}
@@ -203,7 +188,7 @@ func (vc *VersionCheck) ListOfAgents(cfg *CLIConfigFlags, urlopt URLFields) ([]s
 // GetVersion returns the dc/os version of a node
 func (vc *VersionCheck) GetVersion(cfg *CLIConfigFlags, urlopt URLFields) (string, error) {
 	var verResponse VersionResponse
-	response, err := vc.HTTPRequest(cfg, urlopt)
+	response, err := HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return "", errors.Wrap(err, "Unable to get version")
 	}
@@ -213,57 +198,4 @@ func (vc *VersionCheck) GetVersion(cfg *CLIConfigFlags, urlopt URLFields) (strin
 	}
 
 	return verResponse.Version, nil
-}
-
-// HTTPRequest verifies the results of the request
-func (vc *VersionCheck) HTTPRequest(cfg *CLIConfigFlags, urlOptions URLFields) ([]byte, error) {
-	httpClient, err := client.NewClient(cfg.IAMConfig, cfg.CACert)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create HTTP client")
-	}
-
-	url, err := vc.getURL(httpClient, cfg, urlOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	logrus.Debugf("GET %s", url)
-	req, err := http.NewRequest("GET", url.String(), nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create a new HTTP request")
-	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to execute GET %s", url)
-	}
-
-	//if err := json.NewDecoder(resp.Body).Decode(&jsonResponse); err != nil {
-	responseData, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read response body")
-	}
-	defer resp.Body.Close()
-
-	return responseData, nil
-}
-
-func (vc *VersionCheck) getURL(httpClient *http.Client, cfg *CLIConfigFlags, urlOptions URLFields) (*url.URL, error) {
-	scheme := httpScheme
-	if cfg.ForceTLS {
-		scheme = httpsScheme
-	}
-
-	if urlOptions.port == 0 {
-		return &url.URL{
-			Scheme: scheme,
-			Host:   urlOptions.host,
-			Path:   urlOptions.path,
-		}, nil
-	}
-	return &url.URL{
-		Scheme: scheme,
-		Host:   net.JoinHostPort(urlOptions.host, strconv.Itoa(urlOptions.port)),
-		Path:   urlOptions.path,
-	}, nil
 }

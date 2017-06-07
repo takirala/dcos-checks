@@ -9,11 +9,6 @@ import (
 )
 
 func TestVersionCheckUrl(t *testing.T) {
-	test := &VersionCheck{
-		Name:          "TEST",
-		ClusterLeader: "127.0.0.1",
-	}
-
 	for _, testCase := range []struct {
 		urlopt   URLFields
 		forceTLS bool
@@ -36,7 +31,7 @@ func TestVersionCheckUrl(t *testing.T) {
 			ForceTLS:  testCase.forceTLS,
 		}
 
-		url, err := test.getURL(nil, mockCLICfg, testCase.urlopt)
+		url, err := getURL(nil, mockCLICfg, testCase.urlopt)
 		if err != nil {
 			t.Fatalf("Error running getURL: %s", err)
 		}
