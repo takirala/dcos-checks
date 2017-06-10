@@ -11,47 +11,53 @@ func TestComponentCheckGetHealthURL(t *testing.T) {
 
 	for _, item := range []struct {
 		role     string
-		forceTLS bool
+		scheme   string
+		port     int
 		expected string
 	}{
 		{
 			role:     "master",
-			forceTLS: false,
+			scheme:   "http",
+			port:     1050,
 			expected: "http://127.0.0.1:1050/",
 		},
 		{
 			role:     "master",
-			forceTLS: true,
+			scheme:   "https",
+			port:     443,
 			expected: "https://127.0.0.1:443/",
 		},
 		{
 			role:     "agent",
-			forceTLS: false,
+			scheme:   "http",
+			port:     61001,
 			expected: "http://127.0.0.1:61001/",
 		},
 		{
 			role:     "agent",
-			forceTLS: true,
+			scheme:   "https",
+			port:     61002,
 			expected: "https://127.0.0.1:61002/",
 		},
 		{
 			role:     "agent_public",
-			forceTLS: false,
+			scheme:   "http",
+			port:     61001,
 			expected: "http://127.0.0.1:61001/",
 		},
 		{
 			role:     "agent_public",
-			forceTLS: true,
+			scheme:   "https",
+			port:     61002,
 			expected: "https://127.0.0.1:61002/",
 		},
 	} {
 		mockCLICfg := &CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      item.role,
-			ForceTLS:  item.forceTLS,
 		}
 
-		url, err := c.getHealthURL(nil, "/", mockCLICfg)
+		url, err := c.getHealthURL(nil, "/", item.scheme, item.port, mockCLICfg)
 		if err != nil {
 			t.Fatalf("Error running getHealthURL: %s", err)
 		}

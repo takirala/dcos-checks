@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/dcos/dcos-checks/client"
-	"github.com/dcos/dcos-go/dcos"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,6 +32,8 @@ import (
 
 var (
 	healthURLPrefix string
+	scheme          string
+	port            int
 )
 
 // NewComponentCheck returns an initialized instance of *ComponentCheck.
@@ -62,6 +63,8 @@ and validating the health field:
 func init() {
 	RootCmd.AddCommand(componentsCmd)
 	componentsCmd.Flags().StringVarP(&healthURLPrefix, "health-url", "u", "/system/health/v1", "Set dcos-diagnostics health url")
+	componentsCmd.Flags().StringVarP(&scheme, "scheme", "s", "http", "Set dcos-diagnostics health url scheme")
+	componentsCmd.Flags().IntVarP(&port, "port", "p", 1050, "Set TCP port")
 }
 
 type diagnosticsResponse struct {
@@ -104,7 +107,7 @@ func (c *ComponentCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, 
 		return "", statusUnknown, errors.Wrap(err, "unable to create HTTP client")
 	}
 
-	url, err := c.getHealthURL(httpClient, healthURLPrefix, cfg)
+	url, err := c.getHealthURL(httpClient, healthURLPrefix, scheme, port, cfg)
 	if err != nil {
 		return "", 0, err
 	}
@@ -134,32 +137,7 @@ func (c *ComponentCheck) ID() string {
 	return c.Name
 }
 
-func (c *ComponentCheck) getHealthURL(httpClient *http.Client, path string, cfg *CLIConfigFlags) (*url.URL, error) {
-	portsMap := map[string]map[bool]int{
-		dcos.RoleMaster: {
-			true:  adminrouterMasterHTTPSPort,
-			false: dcosDiagnosticsMasterHTTPPort,
-		},
-		dcos.RoleAgent: {
-			true:  adminrouterAgentHTTPSPort,
-			false: adminrouterAgentHTTPPort,
-		},
-		dcos.RoleAgentPublic: {
-			true:  adminrouterAgentHTTPSPort,
-			false: adminrouterAgentHTTPPort,
-		},
-	}
-
-	port, ok := portsMap[cfg.Role][cfg.ForceTLS]
-	if !ok {
-		return nil, errors.Errorf("invalid role %s", cfg.Role)
-	}
-
-	scheme := httpScheme
-	if cfg.ForceTLS {
-		scheme = httpsScheme
-	}
-
+func (c *ComponentCheck) getHealthURL(httpClient *http.Client, path, scheme string, port int, cfg *CLIConfigFlags) (*url.URL, error) {
 	ip, err := cfg.IP(httpClient)
 	if err != nil {
 		return nil, err
