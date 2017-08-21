@@ -1,19 +1,19 @@
 package constants
 
-// NB: use the zero value (unknown) as the first const in an iota expression
-// to convey the right "unknown" meaning until set to some other value.
+// NB: it's important to keep StatusOK as the first constant here because
+// success=0.  Then warning, failure, and then unknown.
 const (
-	// StatusUnknown means that the status was not able to be determined
-	StatusUnknown = iota
-
 	// StatusOK means that the check succeeded
-	StatusOK
+	StatusOK = iota
 
 	// StatusWarning means that the check generated a warning
 	StatusWarning
 
 	// StatusFailure means that the check failed
 	StatusFailure
+
+	// StatusUnknown means that the status was not able to be determined
+	StatusUnknown
 )
 
 const (
