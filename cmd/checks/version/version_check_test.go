@@ -1,4 +1,4 @@
-package cmd
+package version
 
 import (
 	"io"
@@ -6,32 +6,35 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 )
 
 func TestVersionCheckUrl(t *testing.T) {
 	for _, testCase := range []struct {
-		urlopt   URLFields
+		urlopt   common.URLFields
 		forceTLS bool
 		expected string
 	}{
 		{
-			urlopt:   URLFields{"127.0.0.1", 5050, "metrics/snapshot"},
+			urlopt:   common.URLFields{"127.0.0.1", 5050, "metrics/snapshot"},
 			forceTLS: false,
 			expected: "http://127.0.0.1:5050/metrics/snapshot",
 		},
 		{
-			urlopt:   URLFields{"127.0.0.1", 0, "/v1/hosts/master.mesos"},
+			urlopt:   common.URLFields{"127.0.0.1", 0, "/v1/hosts/master.mesos"},
 			forceTLS: false,
 			expected: "http://127.0.0.1/v1/hosts/master.mesos",
 		},
 	} {
-		mockCLICfg := &CLIConfigFlags{
+		mockCLICfg := &common.CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      "master",
 			ForceTLS:  testCase.forceTLS,
 		}
 
-		url, err := getURL(nil, mockCLICfg, testCase.urlopt)
+		url, err := common.GetURL(nil, mockCLICfg, testCase.urlopt)
 		if err != nil {
 			t.Fatalf("Error running getURL: %s", err)
 		}
@@ -58,11 +61,11 @@ func TestVersionCheckListOfMasters(t *testing.T) {
 			forceTLS:  false,
 			status:    http.StatusOK,
 			response:  `[{ "host": "leader.mesos.", "ip": "10.0.4.197" }]`,
-			expStatus: statusOK,
+			expStatus: constants.StatusOK,
 			expValue:  "10.0.4.197",
 		},
 	} {
-		mockCLICfg := &CLIConfigFlags{
+		mockCLICfg := &common.CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      testCase.role,
 			ForceTLS:  testCase.forceTLS,
@@ -79,7 +82,7 @@ func TestVersionCheckListOfMasters(t *testing.T) {
 		masterServer := httptest.NewServer(masterHandler)
 		defer masterServer.Close()
 
-		test := &VersionCheck{
+		test := &versionCheck{
 			Name:          "TEST",
 			ClusterLeader: "127.0.0.1",
 		}
@@ -88,10 +91,10 @@ func TestVersionCheckListOfMasters(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not parse")
 		}
-		var masterurlopt URLFields
-		masterurlopt.host = testurl.Host
-		masterurlopt.port = 0
-		masterurlopt.path = "/v1/hosts/master.mesos"
+		var masterurlopt common.URLFields
+		masterurlopt.Host = testurl.Host
+		masterurlopt.Port = 0
+		masterurlopt.Path = "/v1/hosts/master.mesos"
 
 		masters, err := test.ListOfMasters(mockCLICfg, masterurlopt)
 
@@ -120,12 +123,12 @@ func TestVersionCheckListOfAgents(t *testing.T) {
 			forceTLS:  false,
 			status:    http.StatusOK,
 			response:  `{"slaves":[{"id":"529c3971-b5bb-4f9e-b817-bb32def0ede2-S1","hostname":"10.0.6.233","port":5051,"attributes":{"public_ip":"true"},"pid":"slave(1)@10.0.6.233:5051","registered_time":1496728541.24296,"resources":{"disk":35566.0,"mem":14021.0,"gpus":0.0,"cpus":4.0,"ports":"[1-21, 23-5050, 5052-32000]"},"used_resources":{"disk":0.0,"mem":0.0,"gpus":0.0,"cpus":0.0},"offered_resources":{"disk":0.0,"mem":0.0,"gpus":0.0,"cpus":0.0},"reserved_resources":{"slave_public":{"disk":35566.0,"mem":14021.0,"gpus":0.0,"cpus":4.0,"ports":"[1-21, 23-5050, 5052-32000]"}},"unreserved_resources":{"disk":0.0,"mem":0.0,"gpus":0.0,"cpus":0.0},"active":true,"version":"1.3.0","capabilities":["MULTI_ROLE"],"reserved_resources_full":{"slave_public":[{"name":"ports","type":"RANGES","ranges":{"range":[{"begin":1,"end":21},{"begin":23,"end":5050},{"begin":5052,"end":32000}]},"role":"slave_public"},{"name":"disk","type":"SCALAR","scalar":{"value":35566.0},"role":"slave_public"},{"name":"cpus","type":"SCALAR","scalar":{"value":4.0},"role":"slave_public"},{"name":"mem","type":"SCALAR","scalar":{"value":14021.0},"role":"slave_public"}]},"used_resources_full":[],"offered_resources_full":[]}]}`,
-			expStatus: statusOK,
+			expStatus: constants.StatusOK,
 			expValue:  "10.0.6.233",
 			version:   `{"version": "1.10-dev", "dcos-image-commit": "ccb53df0da261508249570df577c47bbbcc09f82", "bootstrap-id": "8468e43583e21ccb482ff303ed7496f84bbadb4d"}`,
 		},
 	} {
-		mockCLICfg := &CLIConfigFlags{
+		mockCLICfg := &common.CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      testCase.role,
 			ForceTLS:  testCase.forceTLS,
@@ -145,7 +148,7 @@ func TestVersionCheckListOfAgents(t *testing.T) {
 		agentServer := httptest.NewServer(agentHandler)
 		defer agentServer.Close()
 
-		test := &VersionCheck{
+		test := &versionCheck{
 			Name:          "TEST",
 			ClusterLeader: "127.0.0.1",
 		}
@@ -154,10 +157,10 @@ func TestVersionCheckListOfAgents(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not parse")
 		}
-		var agenturlopt URLFields
-		agenturlopt.host = testurl.Host
-		agenturlopt.port = 0
-		agenturlopt.path = "/slaves"
+		var agenturlopt common.URLFields
+		agenturlopt.Host = testurl.Host
+		agenturlopt.Port = 0
+		agenturlopt.Path = "/slaves"
 
 		agents, err := test.ListOfAgents(mockCLICfg, agenturlopt)
 
@@ -168,10 +171,10 @@ func TestVersionCheckListOfAgents(t *testing.T) {
 			t.Fatalf("Getting random nonsense, not the correct value")
 		}
 
-		var versionurlopt URLFields
-		versionurlopt.host = testurl.Host
-		versionurlopt.port = 0
-		versionurlopt.path = "/dcos-metadata/dcos-version.json"
+		var versionurlopt common.URLFields
+		versionurlopt.Host = testurl.Host
+		versionurlopt.Port = 0
+		versionurlopt.Path = "/dcos-metadata/dcos-version.json"
 
 		version, err := test.GetVersion(mockCLICfg, versionurlopt)
 

@@ -1,13 +1,17 @@
-package cmd
+package executable
 
 import "testing"
-import "context"
+import (
+	"context"
+
+	"github.com/dcos/dcos-checks/common"
+)
 
 // TestExecutableExists validates binary exists
 func TestExecutableExists(t *testing.T) {
 	// negative test case so it passes on mac
-	c := &ExecutableCheck{"Test", []string{"curling"}}
-	mockCLICfg := &CLIConfigFlags{
+	c := &executableCheck{"Test", []string{"curling"}}
+	mockCLICfg := &common.CLIConfigFlags{
 		NodeIPStr: "127.0.0.1",
 		Role:      "master",
 		ForceTLS:  false,

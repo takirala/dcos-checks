@@ -1,12 +1,13 @@
 // +build linux
 
-package cmd
+package time
 
 import (
 	"context"
 	"syscall"
 	"testing"
 
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/pkg/errors"
 )
 
@@ -16,7 +17,7 @@ func TestTimeCheckBadStatus(t *testing.T) {
 		return 0, nil
 	}
 
-	check := &TimeCheck{
+	check := &timeCheck{
 		runAdjtimex: mockrunAdjtimex,
 	}
 
@@ -25,8 +26,8 @@ func TestTimeCheckBadStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if code != statusFailure {
-		t.Fatalf("expect status %d. Got %d", statusFailure, code)
+	if code != constants.StatusFailure {
+		t.Fatalf("expect status %d. Got %d", constants.StatusFailure, code)
 	}
 
 	expectedMsg := "Clock is out of sync / in unsync state. Must be synchronized for proper operation."
@@ -41,7 +42,7 @@ func TestTimeCheckClockStable(t *testing.T) {
 		return 0, nil
 	}
 
-	check := &TimeCheck{
+	check := &timeCheck{
 		runAdjtimex: mockrunAdjtimex,
 	}
 
@@ -50,8 +51,8 @@ func TestTimeCheckClockStable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if code != statusFailure {
-		t.Fatalf("expect status %d. Got %d", statusFailure, code)
+	if code != constants.StatusFailure {
+		t.Fatalf("expect status %d. Got %d", constants.StatusFailure, code)
 	}
 
 	expectedMsg := "Clock is less stable than allowed. Max estimated error exceeded by: 1ms"
@@ -65,7 +66,7 @@ func TestTimeCheckError(t *testing.T) {
 		return 1, errors.New("error")
 	}
 
-	check := &TimeCheck{
+	check := &timeCheck{
 		runAdjtimex: mockrunAdjtimex,
 	}
 
@@ -80,7 +81,7 @@ func TestTimeCheck(t *testing.T) {
 		return 0, nil
 	}
 
-	check := &TimeCheck{
+	check := &timeCheck{
 		runAdjtimex: mockrunAdjtimex,
 	}
 
@@ -89,8 +90,8 @@ func TestTimeCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if code != statusOK {
-		t.Fatalf("expect code %d. Got %d", statusOK, code)
+	if code != constants.StatusOK {
+		t.Fatalf("expect code %d. Got %d", constants.StatusOK, code)
 	}
 
 	expectedMsg := "Clock is synced"

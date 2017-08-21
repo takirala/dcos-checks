@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package executable
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/dcos/dcos-go/exec"
 	"github.com/spf13/cobra"
 )
@@ -30,19 +33,11 @@ var validExecutables = map[string]bool{
 	"unzip": true,
 }
 
-// NewExecutableCheck returns an intialized instance of *ExecutableCheck
-func NewExecutableCheck(name string, args []string) DCOSChecker {
-	return &ExecutableCheck{
-		Name: name,
-		Args: args,
-	}
-}
-
 // executableCmd represents the executable command
 var executableCmd = &cobra.Command{
 	Use:   "executable",
 	Short: "Check for executable/executables required to install DC/OS",
-	Long: `Check for existence of the following executable: 
+	Long: `Check for existence of the following executable:
 curl
 wget
 tar
@@ -51,35 +46,45 @@ xz
 unzip
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCheck(context.TODO(), NewExecutableCheck("DC/OS verify existence of executables", args))
+		common.RunCheck(context.TODO(),
+			newExecutableCheck("DC/OS verify existence of executables", args))
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(executableCmd)
+// Add adds this command to the root command
+func Add(root *cobra.Command) {
+	root.AddCommand(executableCmd)
 }
 
-// ExecutableCheck validates we have the required executable to install/run DC/OS
-type ExecutableCheck struct {
+// newExecutableCheck returns an intialized instance of *executableCheck
+func newExecutableCheck(name string, args []string) *executableCheck {
+	return &executableCheck{
+		Name: name,
+		Args: args,
+	}
+}
+
+// executableCheck validates we have the required executable to install/run DC/OS
+type executableCheck struct {
 	Name string
 	Args []string
 }
 
 // ID returns a unique check identifier.
-func (c *ExecutableCheck) ID() string {
+func (c *executableCheck) ID() string {
 	return c.Name
 }
 
 // Run the binary check
-func (c *ExecutableCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, error) {
+func (c *executableCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 	err := c.executableExists(ctx, cfg)
 	if err != nil {
-		return "", statusFailure, err
+		return "", constants.StatusFailure, err
 	}
-	return "", statusOK, nil
+	return "", constants.StatusOK, nil
 }
 
-func (c *ExecutableCheck) executableExists(ctx context.Context, cfg *CLIConfigFlags) error {
+func (c *executableCheck) executableExists(ctx context.Context, cfg *common.CLIConfigFlags) error {
 	var args = c.Args
 
 	if len(args) == 0 {

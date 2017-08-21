@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package ip
 
 import (
 	"bytes"
@@ -21,6 +21,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/dcos/dcos-checks/common"
 	"github.com/dcos/dcos-go/exec"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -38,27 +39,33 @@ var ipCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		RunCheck(ctx, NewDetectIPCheck(detectIP))
+		common.RunCheck(ctx, newDetectIPCheck(detectIP))
 	},
 }
 
-// NewDetectIPCheck returns a new instance of DetectIPCheck.
-func NewDetectIPCheck(path string) DCOSChecker {
-	return &DetectIPCheck{path}
+// Add adds this command to the root command
+func Add(root *cobra.Command) {
+	root.AddCommand(ipCmd)
+	ipCmd.Flags().StringVarP(&detectIP, "detect-ip", "d", defaultDetectIP, "Set path to detect_ip script")
 }
 
-// DetectIPCheck is a structure to accommodate detect_ip check.
-type DetectIPCheck struct {
+// newDetectIPCheck returns a new instance of detectIPCheck.
+func newDetectIPCheck(path string) *detectIPCheck {
+	return &detectIPCheck{path}
+}
+
+// detectIPCheck is a structure to accommodate detect_ip check.
+type detectIPCheck struct {
 	Path string
 }
 
 // ID returns check ID.
-func (d *DetectIPCheck) ID() string {
+func (d *detectIPCheck) ID() string {
 	return "detect_ip check " + d.Path
 }
 
 // Run executes the check.
-func (d *DetectIPCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, error) {
+func (d *detectIPCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 	if d.Path == "" {
 		return "", 0, errors.New("path must be set")
 	}
@@ -84,9 +91,4 @@ func (d *DetectIPCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, i
 	}
 
 	return fmt.Sprintf("%s is a valid IPV4 address", ip), 0, nil
-}
-
-func init() {
-	RootCmd.AddCommand(ipCmd)
-	ipCmd.Flags().StringVarP(&detectIP, "detect-ip", "d", defaultDetectIP, "Set path to detect_ip script")
 }

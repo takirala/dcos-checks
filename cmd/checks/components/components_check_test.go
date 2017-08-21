@@ -1,11 +1,15 @@
-package cmd
+package components
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/dcos/dcos-checks/common"
+)
 
 // TestComponentCheckGetHealthURL validates that parameters Role and ForceTLS
 // return the expected URL based on adminrouter / 3dt configuration.
 func TestComponentCheckGetHealthURL(t *testing.T) {
-	c := &ComponentCheck{
+	c := &componentCheck{
 		Name: "TEST",
 	}
 
@@ -52,7 +56,7 @@ func TestComponentCheckGetHealthURL(t *testing.T) {
 			expected: "https://127.0.0.1:61002/",
 		},
 	} {
-		mockCLICfg := &CLIConfigFlags{
+		mockCLICfg := &common.CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      item.role,
 		}
