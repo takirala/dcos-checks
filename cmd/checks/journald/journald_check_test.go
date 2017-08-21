@@ -1,4 +1,4 @@
-package cmd
+package journald
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/pkg/errors"
 )
 
@@ -27,7 +28,7 @@ func TestJournalCheckFailure(t *testing.T) {
 		t.Fatalf("expected empty output. Got %s", output)
 	}
 
-	if code != statusUnknown {
+	if code != constants.StatusUnknown {
 		t.Fatalf("expected code ...Got %d", code)
 	}
 
@@ -43,7 +44,7 @@ func TestJournalCheckSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if code != statusOK {
+	if code != constants.StatusOK {
 		t.Fatalf("Expect non 0 code. Got %d", code)
 	}
 
@@ -52,7 +53,7 @@ func TestJournalCheckSuccess(t *testing.T) {
 	}
 }
 
-func newMockJournalCheck(e error) (*JournalCheck, error) {
+func newMockJournalCheck(e error) (*journalCheck, error) {
 	u, err := user.Current()
 	if err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func newMockJournalCheck(e error) (*JournalCheck, error) {
 		return nil, err
 	}
 
-	c := &JournalCheck{
+	c := &journalCheck{
 		checkDirFn: mockCheckDirFn(e),
 		Path:       "/tmp",
 		lookupGroup: grp{

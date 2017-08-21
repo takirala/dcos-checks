@@ -15,70 +15,18 @@
 package cmd
 
 import (
-	"net"
-	"net/http"
-
-	"github.com/dcos/dcos-checks/client"
-	"github.com/pkg/errors"
+	"github.com/dcos/dcos-checks/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	// DCOSConfig is a global variable contains CLI options.
-	DCOSConfig = new(CLIConfigFlags)
-
 	cfgFile string
 )
 
-// CLIConfigFlags consolidates CLI cobra flags
-type CLIConfigFlags struct {
-	// CACert is a path to DC/OS CA authority file.
-	CACert string
-
-	// Verbose enabled debugging output with logrus.Debug(...)
-	Verbose bool
-
-	// ForceTLS forces to use HTTPS over HTTP schema.
-	ForceTLS bool
-
-	// IAMConfig is a path to identity and access managment config.
-	IAMConfig string
-
-	// Role defines DC/OS node's role. Valid roles are: master, agent, agent_public
-	// defined in "github.com/dcos/dcos-go/dcos" package.
-	Role string
-
-	// DetectIP is a path to detect_ip script. Usually must be /opt/mesosphere/bin/detect_ip
-	DetectIP string
-
-	// NodeIPStr describes an IP address. This option will override the output of DetectIP.
-	NodeIPStr string
-}
-
-// IP returns a valid IP address. If NodeIPStr is set, it will be used. Otherwise DetectIP will be executed
-// and output will be returned.
-func (cli *CLIConfigFlags) IP(c *http.Client) (net.IP, error) {
-	if cli.NodeIPStr != "" {
-		ip := net.ParseIP(cli.NodeIPStr)
-		if ip == nil {
-			return nil, errors.Errorf("invalid IP address %s", cli.NodeIPStr)
-		}
-		return ip, nil
-	}
-
-	// NodeIPStr is empty at this point. Now execute a command DetectIP variable.
-	nodeInfo, err := client.NewNodeInfo(c, cli.Role, cli.ForceTLS)
-	if err != nil {
-		return nil, err
-	}
-
-	return nodeInfo.DetectIP()
-}
-
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
 	Use:   "checks <check name> [parameters]",
 	Short: "DC/OS health checks",
 	Long: `DC/OS checks provides an easy interface to check the DC/OS components health
@@ -86,7 +34,7 @@ var RootCmd = &cobra.Command{
 The checks could be executed against a signle node, or a whole cluster.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if DCOSConfig.Verbose {
+		if common.DCOSConfig.Verbose {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
 	},
@@ -96,21 +44,24 @@ The checks could be executed against a signle node, or a whole cluster.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	// run the commands parser
-	if err := RootCmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatalf("Error parsing subcommands: %s", err)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.checks.yaml)")
-	RootCmd.PersistentFlags().BoolVar(&DCOSConfig.ForceTLS, "force-tls", false, "use HTTPS for GET/POST requests")
-	RootCmd.PersistentFlags().BoolVar(&DCOSConfig.Verbose, "verbose", false, "enable verbose output")
-	RootCmd.PersistentFlags().StringVar(&DCOSConfig.Role, "role", "", "set DC/OS role. (valid roles: master, agent, public-agent)")
-	RootCmd.PersistentFlags().StringVar(&DCOSConfig.IAMConfig, "iam-config", "", "a path to identity and access managment config")
-	RootCmd.PersistentFlags().StringVar(&DCOSConfig.CACert, "ca-cert", "", "a path to certificate authority file")
-	RootCmd.PersistentFlags().StringVar(&DCOSConfig.DetectIP, "detect-ip", "/opt/mesosphere/bin/detect_ip", "a path to detect ip script")
-	RootCmd.PersistentFlags().StringVar(&DCOSConfig.NodeIPStr, "node-ip", "", "set node IP address overriding detect_ip output")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.checks.yaml)")
+	rootCmd.PersistentFlags().BoolVar(&common.DCOSConfig.ForceTLS, "force-tls", false, "use HTTPS for GET/POST requests")
+	rootCmd.PersistentFlags().BoolVar(&common.DCOSConfig.Verbose, "verbose", false, "enable verbose output")
+	rootCmd.PersistentFlags().StringVar(&common.DCOSConfig.Role, "role", "", "set DC/OS role. (valid roles: master, agent, public-agent)")
+	rootCmd.PersistentFlags().StringVar(&common.DCOSConfig.IAMConfig, "iam-config", "", "a path to identity and access managment config")
+	rootCmd.PersistentFlags().StringVar(&common.DCOSConfig.CACert, "ca-cert", "", "a path to certificate authority file")
+	rootCmd.PersistentFlags().StringVar(&common.DCOSConfig.DetectIP, "detect-ip", "/opt/mesosphere/bin/detect_ip", "a path to detect ip script")
+	rootCmd.PersistentFlags().StringVar(&common.DCOSConfig.NodeIPStr, "node-ip", "", "set node IP address overriding detect_ip output")
+
+	// add the subpackage commands
+	addSubcommands()
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -126,12 +77,12 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		logrus.Infof("Using config file: %s", viper.ConfigFileUsed())
-		DCOSConfig.Role = viper.GetString("role")
-		DCOSConfig.ForceTLS = viper.GetBool("force-tls")
-		DCOSConfig.Verbose = viper.GetBool("verbose")
-		DCOSConfig.IAMConfig = viper.GetString("iam-config")
-		DCOSConfig.CACert = viper.GetString("ca-cert")
-		DCOSConfig.DetectIP = viper.GetString("detect-ip")
-		DCOSConfig.NodeIPStr = viper.GetString("node-ip")
+		common.DCOSConfig.Role = viper.GetString("role")
+		common.DCOSConfig.ForceTLS = viper.GetBool("force-tls")
+		common.DCOSConfig.Verbose = viper.GetBool("verbose")
+		common.DCOSConfig.IAMConfig = viper.GetString("iam-config")
+		common.DCOSConfig.CACert = viper.GetString("ca-cert")
+		common.DCOSConfig.DetectIP = viper.GetString("detect-ip")
+		common.DCOSConfig.NodeIPStr = viper.GetString("node-ip")
 	}
 }

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package time
 
 import (
 	"context"
@@ -21,6 +21,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -33,49 +35,54 @@ const (
 	maxEstErrorUs = int64(time.Microsecond * 100000)
 )
 
+// timeCheck is a time check structure.
+type timeCheck struct {
+	Name string
+
+	runAdjtimex func(*syscall.Timex) (int, error)
+}
+
 // timeCmd represents the time command
 var timeCmd = &cobra.Command{
 	Use:   "time",
 	Short: "Verify time is synced",
 	Long:  `This check uses a system call adjtimex to validate time is synced.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCheck(context.TODO(), NewTimeCheck("Check clock synchronization"))
+		common.RunCheck(context.TODO(), newTimeCheck("Check clock synchronization"))
 	},
 }
 
-// NewTimeCheck returns a new initialized instance of TimeCheck.
-func NewTimeCheck(name string) DCOSChecker {
-	return &TimeCheck{
+// Add adds this command to the root command
+func Add(root *cobra.Command) {
+	root.AddCommand(timeCmd)
+}
+
+// newTimeCheck returns a new initialized instance of timeCheck.
+func newTimeCheck(name string) common.DCOSChecker {
+	return &timeCheck{
 		Name:        name,
 		runAdjtimex: syscall.Adjtimex,
 	}
 }
 
-// TimeCheck is a time check structure.
-type TimeCheck struct {
-	Name string
-
-	runAdjtimex func(*syscall.Timex) (int, error)
-}
-
 // ID returns a check ID.
-func (t *TimeCheck) ID() string {
+func (t *timeCheck) ID() string {
 	return t.Name
 }
 
 // Run executes the check.
-func (t *TimeCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, error) {
+func (t *timeCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 	tBuf := syscall.Timex{}
 
 	// intentionally ignore status. If err != nil, status != 0
 	_, err := t.runAdjtimex(&tBuf)
 	if err != nil {
-		return "", statusUnknown, errors.Wrap(err, "unable to make a system call adjtimex")
+		return "", constants.StatusUnknown, errors.Wrap(err, "unable to make a system call adjtimex")
 	}
 
 	// This is to check if NTP thinks the clock is unstable
 	if diff := tBuf.Esterror - maxEstErrorUs; diff > 0 {
-		return fmt.Sprintf("Clock is less stable than allowed. Max estimated error exceeded by: %s", time.Duration(diff)*time.Microsecond), statusFailure, nil
+		return fmt.Sprintf("Clock is less stable than allowed. Max estimated error exceeded by: %s", time.Duration(diff)*time.Microsecond), constants.StatusFailure, nil
 	}
 
 	// If NTP is down for ~16000 seconds, the clock will go unsync, based on
@@ -83,12 +90,8 @@ func (t *TimeCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, 
 	// heuristics in the timex struct, it doesn't make a ton of sense to look
 	// at them. Maybe in the future we can do something smarter.
 	if (tBuf.Status & staUnsync) > 0 {
-		return "Clock is out of sync / in unsync state. Must be synchronized for proper operation.", statusFailure, nil
+		return "Clock is out of sync / in unsync state. Must be synchronized for proper operation.", constants.StatusFailure, nil
 	}
 
-	return "Clock is synced", statusOK, nil
-}
-
-func init() {
-	RootCmd.AddCommand(timeCmd)
+	return "Clock is synced", constants.StatusOK, nil
 }

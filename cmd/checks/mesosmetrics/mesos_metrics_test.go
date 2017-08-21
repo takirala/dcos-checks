@@ -1,4 +1,4 @@
-package cmd
+package mesosmetrics
 
 import (
 	"context"
@@ -7,11 +7,14 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 )
 
 // TestMesosMetricsCheckUrl verifies we get the right url
 func TestMesosMetricsCheckUrl(t *testing.T) {
-	test := &MesosMetricsCheck{
+	test := &mesosMetricsCheck{
 		Name: "TEST",
 	}
 
@@ -36,7 +39,7 @@ func TestMesosMetricsCheckUrl(t *testing.T) {
 			expected: "https://127.0.0.1:5051/metrics/snapshot",
 		},
 	} {
-		mockCLICfg := &CLIConfigFlags{
+		mockCLICfg := &common.CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      testCase.role,
 			ForceTLS:  testCase.forceTLS,
@@ -67,24 +70,24 @@ func TestMesosMetricsCheckRun(t *testing.T) {
 			forceTLS:  false,
 			status:    http.StatusOK,
 			response:  `{"slave\/tasks_finished":0.0,"slave\/cpus_total":4.0,"slave\/executors_preempted":0.0,"slave\/registered":1.0,"registrar\/log\/recovered": 1.0}`,
-			expStatus: statusOK,
+			expStatus: constants.StatusOK,
 		},
 		{
 			role:      "agent",
 			forceTLS:  false,
 			status:    http.StatusOK,
 			response:  `{"slave\/tasks_finished":0.0,"slave\/cpus_total":4.0,"slave\/executors_preempted":0.0,"slave\/registered":1.0,"registrar\/log\/recovered": 1.0}`,
-			expStatus: statusOK,
+			expStatus: constants.StatusOK,
 		},
 		{
 			role:      "agent",
 			forceTLS:  false,
 			status:    http.StatusOK,
 			response:  `{"slave\/tasks_finished":0.0,"slave\/cpus_total":4.0,"slave\/executors_preempted":0.0,"slave\/registered":0.0,"registrar\/log\/recovered": 1.0}`,
-			expStatus: statusFailure,
+			expStatus: constants.StatusFailure,
 		},
 	} {
-		mockCLICfg := &CLIConfigFlags{
+		mockCLICfg := &common.CLIConfigFlags{
 			NodeIPStr: "127.0.0.1",
 			Role:      testCase.role,
 			ForceTLS:  testCase.forceTLS,
@@ -99,9 +102,9 @@ func TestMesosMetricsCheckRun(t *testing.T) {
 		masterServer := httptest.NewServer(masterHandler)
 		defer masterServer.Close()
 
-		test := &MesosMetricsCheck{
+		test := &mesosMetricsCheck{
 			Name: "TEST",
-			urlFunc: func(client *http.Client, cfg *CLIConfigFlags) (*url.URL, error) {
+			urlFunc: func(client *http.Client, cfg *common.CLIConfigFlags) (*url.URL, error) {
 				return url.Parse(masterServer.URL)
 			},
 		}

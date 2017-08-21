@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package journald
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"os/user"
-	"strconv"
 	"syscall"
 
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -35,42 +35,12 @@ const (
 	systemdJournalGroup = "systemd-journal"
 )
 
-var (
-	// the default location for journal is /var/log/journal, however if the folder is there,
-	// journald will write to /run/log/journal in a nonpersistent way.
-	systemJournalPaths = []string{"/var/log/journal", "/run/log/journal"}
-
-	userJournalPath string
-)
-
 type (
-	grp struct {
-		id   uint32
-		name string
-	}
 	checkDirectoryFn func(string, uint32, map[string]uint32) error
 )
 
-func (g grp) gid() (uint32, error) {
-	if g.name != "" {
-		group, err := user.LookupGroup(g.name)
-		if err != nil {
-			return 0, err
-		}
-
-		gid, err := strconv.ParseUint(group.Gid, 10, 32)
-		if err != nil {
-			return 0, err
-		}
-
-		return uint32(gid), nil
-	}
-
-	return g.id, nil
-}
-
-// JournalCheck validates that the journal folder has he correct permissions and owners.
-type JournalCheck struct {
+// journalCheck validates that the journal folder has he correct permissions and owners.
+type journalCheck struct {
 	Path string
 
 	lookupGroup grp
@@ -79,7 +49,45 @@ type JournalCheck struct {
 	checkDirFn checkDirectoryFn
 }
 
-func (j *JournalCheck) checkDirectory(path string, group uint32, bits map[string]uint32) error {
+// journaldCmd represents the journald command
+var journaldCmd = &cobra.Command{
+	Use:   "journald",
+	Short: "Check if the journal folder ownership and permissions",
+	Long: `Check if the journal folder is owned by root:systemd-journal and has r-x group permissions.
+
+If a user does not set the --path parameter, check will try to use default locations:
+ - /var/log/journal
+ - /run/log/journal
+	`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if userJournalPath == "" {
+			var err error
+			userJournalPath, err = getJournalPath(systemJournalPaths)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+		}
+
+		common.RunCheck(context.TODO(), newJournalCheck(userJournalPath))
+	},
+}
+
+var (
+	// the default location for journal is /var/log/journal, however if the folder is there,
+	// journald will write to /run/log/journal in a nonpersistent way.
+	systemJournalPaths = []string{"/var/log/journal", "/run/log/journal"}
+
+	userJournalPath string
+)
+
+// Add adds this command to the root command
+func Add(root *cobra.Command) {
+	root.AddCommand(journaldCmd)
+	journaldCmd.Flags().StringVarP(&userJournalPath, "path", "p", "",
+		"Set a path to systemd journal binary log directory.")
+}
+
+func (j *journalCheck) checkDirectory(path string, group uint32, bits map[string]uint32) error {
 	dirStat, err := os.Stat(path)
 	if err != nil {
 		return err
@@ -110,14 +118,14 @@ func (j *JournalCheck) checkDirectory(path string, group uint32, bits map[string
 }
 
 // ID returns a unique check identifier.
-func (j *JournalCheck) ID() string {
+func (j *journalCheck) ID() string {
 	return "systemd journal check"
 }
 
 // Run the journal check.
-func (j *JournalCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, error) {
+func (j *journalCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 	if j.Path == "" {
-		return "", statusUnknown, errors.New("journald path is not set")
+		return "", constants.StatusUnknown, errors.New("journald path is not set")
 	}
 
 	var err error
@@ -128,16 +136,16 @@ func (j *JournalCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, in
 
 	err = j.checkDirFn(j.Path, gid, j.checkBits)
 	if err != nil {
-		return "", statusUnknown, err
+		return "", constants.StatusUnknown, err
 	}
 
 	return fmt.Sprintf("directory %s has the group owner `systemd-journal` and group permissons r-x", j.Path),
-		statusOK, nil
+		constants.StatusOK, nil
 }
 
-// NewJournalCheck returns an initialized instance of JournalCheck.
-func NewJournalCheck(p string) DCOSChecker {
-	j := &JournalCheck{
+// newJournalCheck returns an initialized instance of journalCheck.
+func newJournalCheck(p string) common.DCOSChecker {
+	j := &journalCheck{
 		Path: p,
 		lookupGroup: grp{
 			name: systemdJournalGroup,
@@ -154,29 +162,6 @@ func NewJournalCheck(p string) DCOSChecker {
 	return j
 }
 
-// journaldCmd represents the journald command
-var journaldCmd = &cobra.Command{
-	Use:   "journald",
-	Short: "Check if the journal folder ownership and permissions",
-	Long: `Check if the journal folder is owned by root:systemd-journal and has r-x group permissions.
-
-If a user does not set the --path parameter, check will try to use default locations:
- - /var/log/journal
- - /run/log/journal
-	`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if userJournalPath == "" {
-			var err error
-			userJournalPath, err = getJournalPath(systemJournalPaths)
-			if err != nil {
-				logrus.Fatal(err)
-			}
-		}
-
-		RunCheck(context.TODO(), NewJournalCheck(userJournalPath))
-	},
-}
-
 func getJournalPath(paths []string) (string, error) {
 	for _, p := range paths {
 		if _, err := os.Stat(p); err == nil {
@@ -185,10 +170,4 @@ func getJournalPath(paths []string) (string, error) {
 	}
 
 	return "", errors.Errorf("journal paths %s do not exist", paths)
-}
-
-func init() {
-	RootCmd.AddCommand(journaldCmd)
-	journaldCmd.Flags().StringVarP(&userJournalPath, "path", "p", "",
-		"Set a path to systemd journal binary log directory.")
 }

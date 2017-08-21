@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package mesosmetrics
 
 import (
 	"context"
@@ -23,6 +23,8 @@ import (
 	"strconv"
 
 	"github.com/dcos/dcos-checks/client"
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/dcos/dcos-go/dcos"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,41 +35,42 @@ const (
 	nodeRecovered = 1.0
 )
 
+// mesosMetricsCheck checks if mesos replogs are synchronized by checking
+// the value of /metrics/snapshot
+type mesosMetricsCheck struct {
+	Name    string
+	urlFunc func(*http.Client, *common.CLIConfigFlags) (*url.URL, error)
+}
+
 // mesosMetricsCmd represents the mesos-metrics command
 var mesosMetricsCmd = &cobra.Command{
 	Use:   "mesos-metrics",
 	Short: "Get the mesos metrics snapshot",
 	Long:  `Metrics snapshot lets us know if the mesos rep logs are synchronized`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCheck(context.TODO(), NewMesosMetricsCheck("DC/OS metrics snapshot check"))
+		common.RunCheck(context.TODO(), newMesosMetricsCheck("DC/OS metrics snapshot check"))
 	},
 }
 
-// NewMesosMetricsCheck returns an initialized instance of *MesosMetricsCheck.
-func NewMesosMetricsCheck(name string) DCOSChecker {
-	check := &MesosMetricsCheck{Name: name}
+// Add adds this command to the root command
+func Add(root *cobra.Command) {
+	root.AddCommand(mesosMetricsCmd)
+}
+
+// newMesosMetricsCheck returns an initialized instance of *mesosMetricsCheck.
+func newMesosMetricsCheck(name string) common.DCOSChecker {
+	check := &mesosMetricsCheck{Name: name}
 	check.urlFunc = check.getURL
 	return check
 }
 
-// MesosMetricsCheck checks if mesos replogs are synchronized by checking
-// the value of /metrics/snapshot
-type MesosMetricsCheck struct {
-	Name    string
-	urlFunc func(*http.Client, *CLIConfigFlags) (*url.URL, error)
-}
-
 // ID returns a unique check identifier.
-func (mm *MesosMetricsCheck) ID() string {
+func (mm *mesosMetricsCheck) ID() string {
 	return mm.Name
 }
 
-func init() {
-	RootCmd.AddCommand(mesosMetricsCmd)
-}
-
 // Run invokes a check and return error output, exit code and error.
-func (mm *MesosMetricsCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, error) {
+func (mm *mesosMetricsCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 	type masterResponse struct {
 		Recovered float64 `json:"registrar/log/recovered"`
 	}
@@ -79,57 +82,57 @@ func (mm *MesosMetricsCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (stri
 
 	httpClient, err := client.NewClient(cfg.IAMConfig, cfg.CACert)
 	if err != nil {
-		return "", statusUnknown, errors.Wrap(err, "Unable to create HTTP client")
+		return "", constants.StatusUnknown, errors.Wrap(err, "Unable to create HTTP client")
 	}
 
 	url, err := mm.urlFunc(httpClient, cfg)
 	if err != nil {
-		return "", statusFailure, errors.Wrap(err, "Unable to get url")
+		return "", constants.StatusFailure, errors.Wrap(err, "Unable to get url")
 	}
 
 	logrus.Debugf("GET %s", url)
 
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
-		return "", statusUnknown, errors.Wrap(err, "Unable to create a new HTTP request")
+		return "", constants.StatusUnknown, errors.Wrap(err, "Unable to create a new HTTP request")
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", statusUnknown, errors.Wrapf(err, "Unable to execute GET %s", url)
+		return "", constants.StatusUnknown, errors.Wrapf(err, "Unable to execute GET %s", url)
 	}
 	defer resp.Body.Close()
 
 	if cfg.Role == dcos.RoleMaster {
 		var jsonResponse masterResponse
 		if err := json.NewDecoder(resp.Body).Decode(&jsonResponse); err != nil {
-			return "", statusUnknown, errors.Wrap(err, "Unable to unmarshal response")
+			return "", constants.StatusUnknown, errors.Wrap(err, "Unable to unmarshal response")
 		}
 
 		if jsonResponse.Recovered == nodeRecovered {
-			return "", statusOK, nil
+			return "", constants.StatusOK, nil
 		}
 	} else {
 		var jsonResponse agentResponse
 		if err := json.NewDecoder(resp.Body).Decode(&jsonResponse); err != nil {
-			return "", statusUnknown, errors.Wrap(err, "Unable to unmarshal response")
+			return "", constants.StatusUnknown, errors.Wrap(err, "Unable to unmarshal response")
 		}
 
 		if jsonResponse.Recovered == nodeRecovered {
-			return "", statusOK, nil
+			return "", constants.StatusOK, nil
 		}
-		return "", statusFailure, errors.New("Mesos replog not synchronized")
+		return "", constants.StatusFailure, errors.New("Mesos replog not synchronized")
 	}
 
-	return "", statusUnknown, errors.New("Unable to run the check")
+	return "", constants.StatusUnknown, errors.New("Unable to run the check")
 }
 
-func (mm *MesosMetricsCheck) getURL(httpClient *http.Client, cfg *CLIConfigFlags) (*url.URL, error) {
+func (mm *mesosMetricsCheck) getURL(httpClient *http.Client, cfg *common.CLIConfigFlags) (*url.URL, error) {
 
 	portsMap := map[string]int{
-		dcos.RoleMaster:      mesosMasterHTTPPort,
-		dcos.RoleAgent:       mesosAgentHTTPPort,
-		dcos.RoleAgentPublic: mesosAgentHTTPPort,
+		dcos.RoleMaster:      constants.MesosMasterHTTPPort,
+		dcos.RoleAgent:       constants.MesosAgentHTTPPort,
+		dcos.RoleAgentPublic: constants.MesosAgentHTTPPort,
 	}
 
 	port, ok := portsMap[cfg.Role]
@@ -137,9 +140,9 @@ func (mm *MesosMetricsCheck) getURL(httpClient *http.Client, cfg *CLIConfigFlags
 		return nil, errors.Errorf("invalid role %s", cfg.Role)
 	}
 
-	scheme := httpScheme
+	scheme := constants.HTTPScheme
 	if cfg.ForceTLS {
-		scheme = httpsScheme
+		scheme = constants.HTTPSScheme
 	}
 
 	ip, err := cfg.IP(httpClient)

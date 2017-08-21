@@ -12,46 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package version
 
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-// NewVersionCheck returns an initialized instance of *ComponentCheck.
-func NewVersionCheck(name string) DCOSChecker {
-	check := &VersionCheck{Name: name}
-	check.ClusterLeader = "leader.mesos"
-	return check
-}
-
-// MasterListResponse response for leader.mesos/master.mesos
-type MasterListResponse []struct {
-	Host string `json:"host"`
-	IP   string `json:"ip"`
-}
-
-// AgentListResponse response for /slaves
-type AgentListResponse struct {
-	Slaves []struct {
-		ID         string `json:"id"`
-		Hostname   string `json:"hostname"`
-		Port       int    `json:"port"`
-		Attributes struct {
-			PublicIP string `json:"public_ip"`
-		} `json:"attributes"`
-	} `json:"slaves"`
-	RecoveredSlaves []interface{} `json:"recovered_slaves"`
-}
-
-// VersionResponse responses /dcos-metadata/dcos-version.json
-type VersionResponse struct {
-	Version         string `json:"version"`
-	DcosImageCommit string `json:"dcos-image-commit"`
-	BootstrapID     string `json:"bootstrap-id"`
+// versionCheck struct
+type versionCheck struct {
+	Name          string
+	ClusterLeader string
 }
 
 // versionCmd represents the version command
@@ -61,97 +37,99 @@ var versionCmd = &cobra.Command{
 	Long: `Check dc/os version on each node in the cluster.
 At any point there shouldnt be more than 2 versions that exist.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCheck(context.TODO(), NewVersionCheck("DC/OS version check"))
+		common.RunCheck(context.TODO(), newVersionCheck("DC/OS version check"))
 	},
 }
 
-func init() {
-	RootCmd.AddCommand(versionCmd)
+// Add adds this command to the root command
+func Add(root *cobra.Command) {
+	root.AddCommand(versionCmd)
 }
 
-// VersionCheck struct
-type VersionCheck struct {
-	Name          string
-	ClusterLeader string
+// newVersionCheck returns an initialized instance of *versionCheck.
+func newVersionCheck(name string) *versionCheck {
+	check := &versionCheck{Name: name}
+	check.ClusterLeader = "leader.mesos"
+	return check
 }
 
 // ID returns a unique check identifier.
-func (vc *VersionCheck) ID() string {
+func (vc *versionCheck) ID() string {
 	return vc.Name
 }
 
 // Run is running
-func (vc *VersionCheck) Run(ctx context.Context, cfg *CLIConfigFlags) (string, int, error) {
+func (vc *versionCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 
 	// List of masters
-	var masterOpt URLFields
-	masterOpt.host = vc.ClusterLeader
-	masterOpt.port = mesosDNSPort
-	masterOpt.path = "/v1/hosts/master.mesos"
+	var masterOpt common.URLFields
+	masterOpt.Host = vc.ClusterLeader
+	masterOpt.Port = constants.MesosDNSPort
+	masterOpt.Path = "/v1/hosts/master.mesos"
 
 	masterList, err := vc.ListOfMasters(cfg, masterOpt)
 	if err != nil {
-		return "", statusFailure, err
+		return "", constants.StatusFailure, err
 	}
 
 	// List of agents
-	var agentOpt URLFields
-	agentOpt.host = vc.ClusterLeader
-	agentOpt.port = mesosMasterHTTPPort
-	agentOpt.path = "/slaves"
+	var agentOpt common.URLFields
+	agentOpt.Host = vc.ClusterLeader
+	agentOpt.Port = constants.MesosMasterHTTPPort
+	agentOpt.Path = "/slaves"
 
 	agentList, err := vc.ListOfAgents(cfg, agentOpt)
 	if err != nil {
-		return "", statusFailure, err
+		return "", constants.StatusFailure, err
 	}
 
 	// Check version endpoint for each endpoint
 	var version map[string]bool
 	version = make(map[string]bool)
-	var versionURL URLFields
-	versionURL.path = "/dcos-metadata/dcos-version.json"
+	var versionURL common.URLFields
+	versionURL.Path = "/dcos-metadata/dcos-version.json"
 	for _, master := range masterList {
-		versionURL.host = master
-		versionURL.port = 0
+		versionURL.Host = master
+		versionURL.Port = 0
 		if cfg.ForceTLS {
-			versionURL.port = adminrouterMasterHTTPSPort
+			versionURL.Port = constants.AdminrouterMasterHTTPSPort
 		}
 		ver, err := vc.GetVersion(cfg, versionURL)
 		if err != nil {
-			return "", statusFailure, errors.Wrap(err, "Unable to get version")
+			return "", constants.StatusFailure, errors.Wrap(err, "Unable to get version")
 		}
 		version[ver] = true
 	}
 
 	for _, agent := range agentList {
-		versionURL.host = agent
-		versionURL.port = adminrouterAgentHTTPPort
+		versionURL.Host = agent
+		versionURL.Port = constants.AdminrouterAgentHTTPPort
 		if cfg.ForceTLS {
-			versionURL.port = adminrouterAgentHTTPSPort
+			versionURL.Port = constants.AdminrouterAgentHTTPSPort
 		}
 		ver, err := vc.GetVersion(cfg, versionURL)
 		if err != nil {
-			return "", statusFailure, errors.Wrap(err, "Unable to get version")
+			return "", constants.StatusFailure, errors.Wrap(err, "Unable to get version")
 		}
 		version[ver] = true
 	}
 
 	if len(version) <= 2 {
-		return "", statusOK, nil
+		return "", constants.StatusOK, nil
 	}
 
 	if len(version) > 2 {
-		return "", statusWarning, errors.New("More than 2 dc/os versions on the cluster")
+		return "", constants.StatusWarning, errors.New("More than 2 dc/os versions on the cluster")
 	}
 
-	return "", statusUnknown, nil
+	return "", constants.StatusUnknown, nil
 }
 
 // ListOfMasters returns the current list of masters in the cluster
-func (vc *VersionCheck) ListOfMasters(cfg *CLIConfigFlags, urlopt URLFields) ([]string, error) {
-	var masterResponse MasterListResponse
+func (vc *versionCheck) ListOfMasters(cfg *common.CLIConfigFlags, urlopt common.URLFields) ([]string, error) {
+	var masterResponse masterListResponses
 	var masterIPs []string
-	_, response, err := HTTPRequest(cfg, urlopt)
+	_, response, err := common.HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to fetch list of masters")
 	}
@@ -167,10 +145,10 @@ func (vc *VersionCheck) ListOfMasters(cfg *CLIConfigFlags, urlopt URLFields) ([]
 }
 
 // ListOfAgents returns the current list of agents in the cluster
-func (vc *VersionCheck) ListOfAgents(cfg *CLIConfigFlags, urlopt URLFields) ([]string, error) {
-	var agentResponse AgentListResponse
+func (vc *versionCheck) ListOfAgents(cfg *common.CLIConfigFlags, urlopt common.URLFields) ([]string, error) {
+	var agentResponse agentListResponse
 	var agentIPs []string
-	_, response, err := HTTPRequest(cfg, urlopt)
+	_, response, err := common.HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to fetch list of agents")
 	}
@@ -186,9 +164,9 @@ func (vc *VersionCheck) ListOfAgents(cfg *CLIConfigFlags, urlopt URLFields) ([]s
 }
 
 // GetVersion returns the dc/os version of a node
-func (vc *VersionCheck) GetVersion(cfg *CLIConfigFlags, urlopt URLFields) (string, error) {
-	var verResponse VersionResponse
-	_, response, err := HTTPRequest(cfg, urlopt)
+func (vc *versionCheck) GetVersion(cfg *common.CLIConfigFlags, urlopt common.URLFields) (string, error) {
+	var verResponse versionResponse
+	_, response, err := common.HTTPRequest(cfg, urlopt)
 	if err != nil {
 		return "", errors.Wrap(err, "Unable to get version")
 	}
