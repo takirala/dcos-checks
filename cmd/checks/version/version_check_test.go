@@ -18,12 +18,18 @@ func TestVersionCheckUrl(t *testing.T) {
 		expected string
 	}{
 		{
-			urlopt:   common.URLFields{"127.0.0.1", 5050, "metrics/snapshot"},
+			urlopt: common.URLFields{
+				Host: "127.0.0.1",
+				Port: 5050,
+				Path: "metrics/snapshot"},
 			forceTLS: false,
 			expected: "http://127.0.0.1:5050/metrics/snapshot",
 		},
 		{
-			urlopt:   common.URLFields{"127.0.0.1", 0, "/v1/hosts/master.mesos"},
+			urlopt: common.URLFields{
+				Host: "127.0.0.1",
+				Port: 0,
+				Path: "/v1/hosts/master.mesos"},
 			forceTLS: false,
 			expected: "http://127.0.0.1/v1/hosts/master.mesos",
 		},
