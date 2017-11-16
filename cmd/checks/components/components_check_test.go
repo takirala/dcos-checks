@@ -1,6 +1,8 @@
 package components
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/dcos/dcos-checks/common"
@@ -69,5 +71,19 @@ func TestComponentCheckGetHealthURL(t *testing.T) {
 		if url.String() != item.expected {
 			t.Fatalf("Expect %s. Got %s", item.expected, url.String())
 		}
+	}
+}
+
+func TestDiagnosticsResponse(t *testing.T) {
+	// A sample from the output of system/health/v1 with checks marked as not healthy
+	response := `{"units":[{"id":"dcos-adminrouter.service","health":0,"output":"","description":"exposes a unified control plane proxy for components and services using NGINX","help":"","name":"Admin Router Master"},{"id":"dcos-checks-poststart.service","health":1,"output":"","description":"Run node-poststart checks","help":"","name":"DC/OS Poststart Checks"},{"id":"dcos-checks-poststart.timer","health":1,"output":"","description":"timer for DC/OS Checks service","help":"","name":"DC/OS Checks Timer"},{"id":"dcos-cosmos.service","health":0,"output":"","description":"installs and manages DC/OS packages from DC/OS package repositories, such as the Mesosphere Universe","help":"","name":"DC/OS Package Manager (Cosmos)"},{"id":"dcos-diagnostics.service","health":0,"output":"","description":"aggregates and exposes component health","help":"","name":"DC/OS Diagnostics Master"},{"id":"dcos-diagnostics.socket","health":0,"output":"","description":"socket for DC/OS Diagnostics Agent","help":"","name":"DC/OS Diagnostics Agent Socket"}]}`
+
+	var dr diagnosticsResponse
+	if err := json.NewDecoder(strings.NewReader(response)).Decode(&dr); err != nil {
+		t.Fatalf("Error decoding")
+	}
+	_, retCode := dr.checkHealth()
+	if retCode != 0 {
+		t.Fatalf("Check health failed")
 	}
 }
