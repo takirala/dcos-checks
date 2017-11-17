@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dcos/dcos-checks/constants"
 )
@@ -20,7 +21,7 @@ type diagnosticsResponse struct {
 func (d *diagnosticsResponse) checkHealth() ([]string, int) {
 	var errorList []string
 	for _, unit := range d.Units {
-		if unit.Health != constants.StatusOK {
+		if (unit.Health != constants.StatusOK) && !(strings.Contains(unit.ID, "dcos-checks")) {
 			errorList = append(errorList, fmt.Sprintf("component %s has health status %d", unit.Name, unit.Health))
 		}
 	}
