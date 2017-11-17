@@ -40,9 +40,10 @@ type componentCheck struct {
 }
 
 var (
-	healthURLPrefix string
-	scheme          string
-	port            int
+	healthURLPrefix   string
+	scheme            string
+	port              int
+	excludeComponents []string
 )
 
 // componentsCmd represents the systemd health check
@@ -69,6 +70,7 @@ func Add(root *cobra.Command) {
 	componentsCmd.Flags().StringVarP(&healthURLPrefix, "health-url", "u", "/system/health/v1", "Set dcos-diagnostics health url")
 	componentsCmd.Flags().StringVarP(&scheme, "scheme", "s", "http", "Set dcos-diagnostics health url scheme")
 	componentsCmd.Flags().IntVarP(&port, "port", "p", 1050, "Set TCP port")
+	componentsCmd.Flags().StringArrayVar(&excludeComponents, "exclude-components", nil, "Exclude components from health check")
 }
 
 // Run invokes a systemd check and return error output, exit code and error.
@@ -99,7 +101,7 @@ func (c *componentCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (s
 		return "", constants.StatusUnknown, errors.Wrap(err, "unable to unmarshal diagnostics response")
 	}
 
-	errorList, retCode := dr.checkHealth()
+	errorList, retCode := dr.checkHealth(excludeComponents)
 	return strings.Join(errorList, "\n"), retCode, nil
 }
 

@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/dcos/dcos-checks/constants"
 )
@@ -18,10 +17,27 @@ type diagnosticsResponse struct {
 	} `json:"units"`
 }
 
-func (d *diagnosticsResponse) checkHealth() ([]string, int) {
+func (d *diagnosticsResponse) checkHealth(args []string) ([]string, int) {
 	var errorList []string
+	skipcomp := make(map[string]bool)
+	if len(args) != 0 {
+		// We want to skip some components
+		m := make(map[string]bool)
+		for _, unit := range d.Units {
+			// convert list to map
+			m[unit.ID] = true
+		}
+		for _, unit := range args {
+			if !m[unit] {
+				errorList = append(errorList, fmt.Sprintf("component %s does not exist", unit))
+				return errorList, constants.StatusFailure
+			}
+			skipcomp[unit] = true
+		}
+	}
+
 	for _, unit := range d.Units {
-		if (unit.Health != constants.StatusOK) && !(strings.Contains(unit.ID, "dcos-checks")) {
+		if (unit.Health != constants.StatusOK) && !skipcomp[unit.ID] {
 			errorList = append(errorList, fmt.Sprintf("component %s has health status %d", unit.Name, unit.Health))
 		}
 	}
