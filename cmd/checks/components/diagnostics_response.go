@@ -19,21 +19,9 @@ type diagnosticsResponse struct {
 
 func (d *diagnosticsResponse) checkHealth(args []string) ([]string, int) {
 	var errorList []string
-	skipcomp := make(map[string]bool)
-	if len(args) != 0 {
-		// We want to skip some components
-		m := make(map[string]bool)
-		for _, unit := range d.Units {
-			// convert list to map
-			m[unit.ID] = true
-		}
-		for _, unit := range args {
-			if !m[unit] {
-				errorList = append(errorList, fmt.Sprintf("component %s does not exist", unit))
-				return errorList, constants.StatusFailure
-			}
-			skipcomp[unit] = true
-		}
+	skipcomp := make(map[string]bool, len(args))
+	for _, unit := range args {
+		skipcomp[unit] = true
 	}
 
 	for _, unit := range d.Units {
