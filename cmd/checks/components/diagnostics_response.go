@@ -17,15 +17,15 @@ type diagnosticsResponse struct {
 	} `json:"units"`
 }
 
-func (d *diagnosticsResponse) checkHealth(args []string) ([]string, int) {
+func (d *diagnosticsResponse) checkHealth(skipCompArgs []string) ([]string, int) {
 	var errorList []string
-	skipcomp := make(map[string]bool, len(args))
-	for _, unit := range args {
-		skipcomp[unit] = true
+	skipCompMap := make(map[string]bool, len(skipCompArgs))
+	for _, unit := range skipCompArgs {
+		skipCompMap[unit] = true
 	}
 
 	for _, unit := range d.Units {
-		if (unit.Health != constants.StatusOK) && !skipcomp[unit.ID] {
+		if (unit.Health != constants.StatusOK) && !skipCompMap[unit.ID] {
 			errorList = append(errorList, fmt.Sprintf("component %s has health status %d", unit.Name, unit.Health))
 		}
 	}

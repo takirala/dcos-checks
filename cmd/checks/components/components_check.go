@@ -70,7 +70,7 @@ func Add(root *cobra.Command) {
 	componentsCmd.Flags().StringVarP(&healthURLPrefix, "health-url", "u", "/system/health/v1", "Set dcos-diagnostics health url")
 	componentsCmd.Flags().StringVarP(&scheme, "scheme", "s", "http", "Set dcos-diagnostics health url scheme")
 	componentsCmd.Flags().IntVarP(&port, "port", "p", 1050, "Set TCP port")
-	componentsCmd.Flags().StringArrayVar(&excludeComponents, "exclude-components", nil, "Exclude components from health check")
+	componentsCmd.Flags().StringArrayVarP(&excludeComponents, "exclude", "e", nil, "Exclude components from health check")
 }
 
 // Run invokes a systemd check and return error output, exit code and error.

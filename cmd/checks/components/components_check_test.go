@@ -86,11 +86,11 @@ func TestDiagnosticsResponse(t *testing.T) {
 	complist := []string{"dcos-checks-poststart.service", "dcos-checks-poststart.timer"}
 	_, retCode := dr.checkHealth(complist)
 	if retCode != 0 {
-		t.Fatalf("Check health failed")
+		t.Fatalf("Component health check failed when it should have passed")
 	}
 
 	_, retCode = dr.checkHealth(nil)
 	if retCode == 0 {
-		t.Fatalf("Check health failed")
+		t.Fatalf("Component health check passed when it should have failed")
 	}
 }
