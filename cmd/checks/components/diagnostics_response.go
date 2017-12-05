@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/dcos/dcos-checks/constants"
 )
@@ -18,10 +17,15 @@ type diagnosticsResponse struct {
 	} `json:"units"`
 }
 
-func (d *diagnosticsResponse) checkHealth() ([]string, int) {
+func (d *diagnosticsResponse) checkHealth(skipCompArgs []string) ([]string, int) {
 	var errorList []string
+	skipCompMap := make(map[string]bool, len(skipCompArgs))
+	for _, unit := range skipCompArgs {
+		skipCompMap[unit] = true
+	}
+
 	for _, unit := range d.Units {
-		if (unit.Health != constants.StatusOK) && !(strings.Contains(unit.ID, "dcos-checks")) {
+		if (unit.Health != constants.StatusOK) && !skipCompMap[unit.ID] {
 			errorList = append(errorList, fmt.Sprintf("component %s has health status %d", unit.Name, unit.Health))
 		}
 	}
