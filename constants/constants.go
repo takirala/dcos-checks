@@ -28,6 +28,10 @@ const (
 	// listens for HTTPS requests
 	AdminrouterAgentHTTPSPort = 61002
 
+	// ExhibitorHTTPSPort is the port on which Exhibitor listens on a master
+	// node
+	ExhibitorHTTPPort = 8181
+
 	// MesosMasterHTTPPort is the port on which the Mesos master listens for
 	// HTTP requests.
 	MesosMasterHTTPPort = 5050
