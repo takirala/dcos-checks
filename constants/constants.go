@@ -28,7 +28,7 @@ const (
 	// listens for HTTPS requests
 	AdminrouterAgentHTTPSPort = 61002
 
-	// ExhibitorHTTPSPort is the port on which Exhibitor listens on a master
+	// ExhibitorHTTPPort is the port on which Exhibitor listens on a master
 	// node
 	ExhibitorHTTPPort = 8181
 
