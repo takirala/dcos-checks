@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	"github.com/dcos/dcos-checks/client"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/dcos/dcos-checks/constants"
 )
 
 // URLFields is used to construct the url
