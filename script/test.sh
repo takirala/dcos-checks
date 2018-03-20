@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script performs tests against the dcos-backup project, specifically:
+# This script performs tests against the dcos-checks project, specifically:
 #
 #   * gofmt         (https://golang.org/cmd/gofmt)
 #   * goimports     (https://godoc.org/cmd/goimports)
@@ -16,7 +16,7 @@ set -o pipefail
 export PATH="${GOPATH}/bin:${PATH}"
 
 if [ $# -ne 1 ]; then
-    echo "usage: $0 [test suite]"
+    echo "usage: $0 test_suite"
     exit 1
 fi
 
@@ -101,7 +101,7 @@ function _unittest_with_coverage {
 }
 
 
-# Main. Example usage: ./test.sh collector unit
+# Main. Example usage: ./test.sh TEST_SUITE
 function main {
     local test_dirs="./"
     local package_dirs="./..."
