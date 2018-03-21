@@ -5,21 +5,27 @@ import (
 	"context"
 	"io"
 	"os/exec"
+	"runtime"
+	"strings"
 	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // dcos-go/exec is a os/exec wrapper. It implements io.Reader and can be used to read both STDOUT and STDERR.
 //
 // Usage:
-// ce := exec.Run("bash", []string{"infinite.sh"}, exec.Timeout(3 * time.Second))
+// ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// defer cancel()
+//
+// ce, err := exec.Run(ctx, "bash", []string{"infinite.sh"})
+// if err != nil {
+// 	log.Fatal(err)
+// }
 //
 // io.Copy(os.Stdout, ce)
-// err := <- ce.Done
+// err = <- ce.Done
 // if err != nil {
-// 	log.Error(err)
+// 	log.Fatal(err)
 // }
 
 // CommandExecutor is a structure returned by exec.Run
@@ -49,6 +55,13 @@ func Run(ctx context.Context, command string, arg []string) (*CommandExecutor, e
 		ctx = context.Background()
 	}
 
+	if runtime.GOOS == "windows" {
+		// For powershell, if running a script we need to execute it with a -File option
+		// otherwise the return code will get lost
+		if len(arg) == 1 && strings.HasSuffix(arg[0], ".ps1") {
+			arg = append([]string{"-File"}, arg...)
+		}
+	}
 	// by default Cancel is spineless unless someone configures an option to enable it
 	commandExecutor := &CommandExecutor{Done: make(chan error, 1), done: make(chan error, 1)}
 
@@ -81,45 +94,56 @@ func Run(ctx context.Context, command string, arg []string) (*CommandExecutor, e
 	return commandExecutor, nil
 }
 
-// Output returns stdout, stderr, exit code and error status for a given shell command
-func Output(ctx context.Context, command ...string) (stdout []byte, stderr []byte, code int, err error) {
-
-	var (
-		// define an empty cancel function
-		cancel         context.CancelFunc = func() {}
-		arg            []string
-		outbuf, errbuf bytes.Buffer
-	)
-
+func commandParts(command ...string) (name string, arg []string) {
 	if len(command) == 0 {
-		return nil, nil, 0, errors.New("unable to execute a command with empty Cmd field")
+		panic("empty command")
 	}
+	return command[0], command[1:]
+}
 
-	if ctx == nil {
-		// default to 10 seconds timeout.
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
+// Command returns a Cmd from a shell command.
+func Command(command ...string) *exec.Cmd {
+	name, arg := commandParts(command...)
+	return exec.Command(name, arg...)
+}
+
+// CommandContext returns a Cmd with the given context and shell command.
+func CommandContext(ctx context.Context, command ...string) *exec.Cmd {
+	name, arg := commandParts(command...)
+	return exec.CommandContext(ctx, name, arg...)
+}
+
+// FullOutput runs a command and returns its stdout, stderr, exit code, and error status.
+func FullOutput(c *exec.Cmd) (stdout []byte, stderr []byte, code int, err error) {
+	var outbuf, errbuf bytes.Buffer
+
+	c.Stdout = &outbuf
+	c.Stderr = &errbuf
+
+	if runtime.GOOS == "windows" {
+		// For powershell, if running a script we need to execute it with a -File option
+		// otherwise the return code will get lost
+		if len(c.Args) == 2 && strings.Contains(c.Args[0], "powershell.exe") && strings.HasSuffix(c.Args[1], ".ps1") {
+			c.Args = []string{c.Args[0], "-File", c.Args[1]}
+		}
 	}
-
-	defer cancel()
-
-	if len(command) > 1 {
-		arg = command[1:]
-	}
-
-	cmd := exec.CommandContext(ctx, command[0], arg...)
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-
-	if err := cmd.Start(); err != nil {
+	if err := c.Start(); err != nil {
 		return nil, nil, 0, err
 	}
 
-	err = cmd.Wait()
+	err = c.Wait()
 	code, err = exitCode(err)
 	stdout = outbuf.Bytes()
 	stderr = errbuf.Bytes()
 
 	return stdout, stderr, code, err
+}
+
+// SimpleFullOutput runs a shell command with a timeout and returns its stdout, stderr, exit code, and error status.
+func SimpleFullOutput(timeout time.Duration, command ...string) (stdout []byte, stderr []byte, code int, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return FullOutput(CommandContext(ctx, command...))
 }
 
 // exitCode takes an error and checks if it's a read error or program had non zero exit code.
