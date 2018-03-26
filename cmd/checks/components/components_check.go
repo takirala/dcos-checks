@@ -64,8 +64,8 @@ and validating the health field:
 	},
 }
 
-// Add adds this command to the root command
-func Add(root *cobra.Command) {
+// Register adds this command to the root command
+func Register(root *cobra.Command) {
 	root.AddCommand(componentsCmd)
 	componentsCmd.Flags().StringVarP(&healthURLPrefix, "health-url", "u", "/system/health/v1", "Set dcos-diagnostics health url")
 	componentsCmd.Flags().StringVarP(&scheme, "scheme", "s", "http", "Set dcos-diagnostics health url scheme")
