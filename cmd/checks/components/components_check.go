@@ -82,7 +82,7 @@ func (c *componentCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (s
 
 	url, err := c.getHealthURL(httpClient, healthURLPrefix, scheme, port, cfg)
 	if err != nil {
-		return "", 0, err
+		return "", constants.StatusUnknown, err
 	}
 	logrus.Debugf("GET %s", url)
 	req, err := http.NewRequest("GET", url.String(), nil)
