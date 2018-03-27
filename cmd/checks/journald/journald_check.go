@@ -131,7 +131,7 @@ func (j *journalCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (str
 	var err error
 	gid, err := j.lookupGroup.gid()
 	if err != nil {
-		return "", 0, err
+		return "", constants.StatusUnknown, err
 	}
 
 	err = j.checkDirFn(j.Path, gid, j.checkBits)

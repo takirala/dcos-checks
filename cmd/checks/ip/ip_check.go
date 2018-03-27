@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/dcos/dcos-checks/common"
+	"github.com/dcos/dcos-checks/constants"
 	"github.com/dcos/dcos-go/exec"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -67,28 +68,28 @@ func (d *detectIPCheck) ID() string {
 // Run executes the check.
 func (d *detectIPCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (string, int, error) {
 	if d.Path == "" {
-		return "", 0, errors.New("path must be set")
+		return "", constants.StatusUnknown, errors.New("path must be set")
 	}
 
 	stdout, stderr, code, err := exec.Output(ctx, d.Path)
 	if err != nil {
-		return "", 0, err
+		return "", constants.StatusUnknown, err
 	}
 
 	if code != 0 {
-		return "", 0, errors.Wrapf(err, "return code non zero: %d", code)
+		return "", code, errors.Wrapf(err, "return code non zero: %d", code)
 	}
 
 	if len(stderr) > 0 {
-		return "", 0, errors.Errorf("detect_ip returned stderr: %s", string(stderr))
+		return "", constants.StatusFailure, errors.Errorf("detect_ip returned stderr: %s", string(stderr))
 	}
 
 	trimmedIP := bytes.TrimSpace(stdout)
 
 	ip := net.ParseIP(string(trimmedIP))
 	if ip == nil {
-		return "", 0, errors.Errorf("invalid IP address %s", stdout)
+		return "", constants.StatusUnknown, errors.Errorf("invalid IP address %s", stdout)
 	}
 
-	return fmt.Sprintf("%s is a valid IPV4 address", ip), 0, nil
+	return fmt.Sprintf("%s is a valid IPV4 address", ip), constants.StatusOK, nil
 }
