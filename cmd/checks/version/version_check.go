@@ -41,8 +41,8 @@ At any point there shouldnt be more than 2 versions that exist.`,
 	},
 }
 
-// Add adds this command to the root command
-func Add(root *cobra.Command) {
+// Register adds this command to the root command
+func Register(root *cobra.Command) {
 	root.AddCommand(versionCmd)
 }
 

@@ -51,8 +51,8 @@ unzip
 	},
 }
 
-// Add adds this command to the root command
-func Add(root *cobra.Command) {
+// Register adds this command to the root command
+func Register(root *cobra.Command) {
 	root.AddCommand(executableCmd)
 }
 
@@ -103,7 +103,7 @@ func (c *executableCheck) executableExists(ctx context.Context, cfg *common.CLIC
 		return fmt.Errorf("Choose from valid list of executables %v", keys)
 	}
 
-	if _, _, _, err := exec.Output(ctx, args[0]); err != nil {
+	if _, _, _, err := exec.FullOutput(exec.CommandContext(ctx, args[0])); err != nil {
 		return fmt.Errorf("%s not installed", args[0])
 	}
 	return nil

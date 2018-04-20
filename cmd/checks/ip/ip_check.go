@@ -44,8 +44,8 @@ var ipCmd = &cobra.Command{
 	},
 }
 
-// Add adds this command to the root command
-func Add(root *cobra.Command) {
+// Register adds this command to the root command
+func Register(root *cobra.Command) {
 	root.AddCommand(ipCmd)
 	ipCmd.Flags().StringVarP(&detectIP, "detect-ip", "d", defaultDetectIP, "Set path to detect_ip script")
 }
@@ -71,7 +71,7 @@ func (d *detectIPCheck) Run(ctx context.Context, cfg *common.CLIConfigFlags) (st
 		return "", constants.StatusUnknown, errors.New("path must be set")
 	}
 
-	stdout, stderr, code, err := exec.Output(ctx, d.Path)
+	stdout, stderr, code, err := exec.FullOutput(exec.CommandContext(ctx, d.Path))
 	if err != nil {
 		return "", constants.StatusUnknown, err
 	}

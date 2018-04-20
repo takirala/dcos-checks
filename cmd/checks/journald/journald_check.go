@@ -80,8 +80,8 @@ var (
 	userJournalPath string
 )
 
-// Add adds this command to the root command
-func Add(root *cobra.Command) {
+// Register adds this command to the root command
+func Register(root *cobra.Command) {
 	root.AddCommand(journaldCmd)
 	journaldCmd.Flags().StringVarP(&userJournalPath, "path", "p", "",
 		"Set a path to systemd journal binary log directory.")
