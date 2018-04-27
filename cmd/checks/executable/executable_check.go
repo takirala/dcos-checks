@@ -24,30 +24,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var validExecutables = map[string]bool{
-	"curl":  true,
-	"wget":  true,
-	"tar":   true,
-	"git":   true,
-	"xz":    true,
-	"unzip": true,
-}
-
 // executableCmd represents the executable command
 var executableCmd = &cobra.Command{
 	Use:   "executable",
-	Short: "Check for executable/executables required to install DC/OS",
-	Long: `Check for existence of the following executable:
-curl
-wget
-tar
-git
-xz
-unzip
-`,
+	Short: "Check for the availability of an executable",
+	Long:  "Check for the availability of an executable",
 	Run: func(cmd *cobra.Command, args []string) {
 		common.RunCheck(context.TODO(),
-			newExecutableCheck("DC/OS verify existence of executables", args))
+			newExecutableCheck("check availability of executable", args))
 	},
 }
 
@@ -95,16 +79,13 @@ func (c *executableCheck) executableExists(ctx context.Context, cfg *common.CLIC
 		return fmt.Errorf("Only one executable allowed at a time")
 	}
 
-	if !validExecutables[args[0]] {
-		var keys []string
-		for key := range validExecutables {
-			keys = append(keys, key)
-		}
-		return fmt.Errorf("Choose from valid list of executables %v", keys)
+	_, _, exitCode, err := exec.FullOutput(exec.CommandContext(ctx, "bash", "-c", fmt.Sprintf("command -v %s", args[0])))
+	if err != nil {
+		return fmt.Errorf("ERROR: Unable to determine whether %s is available", args[0])
+	}
+	if exitCode != 0 {
+		return fmt.Errorf("%s not available", args[0])
 	}
 
-	if _, _, _, err := exec.FullOutput(exec.CommandContext(ctx, args[0])); err != nil {
-		return fmt.Errorf("%s not installed", args[0])
-	}
 	return nil
 }

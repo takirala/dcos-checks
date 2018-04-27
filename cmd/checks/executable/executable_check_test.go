@@ -7,18 +7,27 @@ import (
 	"github.com/dcos/dcos-checks/common"
 )
 
-// TestExecutableExists validates binary exists
-func TestExecutableExists(t *testing.T) {
-	// negative test case so it passes on mac
-	c := &executableCheck{"Test", []string{"curling"}}
+func checkExecutable(e string) error {
+	c := &executableCheck{"Test", []string{e}}
 	mockCLICfg := &common.CLIConfigFlags{
 		NodeIPStr: "127.0.0.1",
 		Role:      "master",
 		ForceTLS:  false,
 	}
+	return c.executableExists(context.Background(), mockCLICfg)
+}
 
-	err := c.executableExists(context.Background(), mockCLICfg)
-	if err == nil {
-		t.Fatalf("Should have returned an error")
+// TestExecutableExists validates binary exists
+func TestExecutableExists(t *testing.T) {
+	// negative test case
+	executable := "nonexistent_executable"
+	if err := checkExecutable(executable); err == nil {
+		t.Fatalf("unexpectedly found executable '%s'", executable)
+	}
+
+	// positive test case
+	executable = "bash"
+	if err := checkExecutable(executable); err != nil {
+		t.Fatalf("executable '%s' not found", executable)
 	}
 }
