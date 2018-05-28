@@ -23,7 +23,7 @@
 
 [[constraint]]
   name = "github.com/dcos/dcos-go"
-  revision = "0245b80f4b9e2cf772243f14628a5a80b3ff0311"
+  revision = "401ceabc567958049478a8f9cd5d94195a4bb25c"
 
 [[constraint]]
   name = "github.com/pkg/errors"
